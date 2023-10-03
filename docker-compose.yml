@@ -1,0 +1,59 @@
+version: "2.2"
+
+networks:
+  monero-pool:
+    external: false
+
+volumes:
+  monero:
+    external: false
+  p2pool:
+    external: false
+
+services:
+  p2pool:
+    image: p2pool:latest
+    container_name: p2pool
+    build:
+      context: ./p2pool
+    restart: always
+    tty: true
+    stdin_open: true
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - monero-pool
+    depends_on:
+      - monero
+    volumes:
+      - p2pool:/p2pool/data:rw
+      - "/dev/hugepages:/dev/hugepages:rw"
+    ports:
+      - "3333:3333"
+      - "37889:37889"
+    command: >-
+      --wallet "493q7wHvUfhTRk9JMopZVxFFWDNowZkqkRWpMZdbTyRSepzfMjRau6g2JpS9QaRDZ55gJ11wtJTmF1nhEYxUqePu7VhXpLB"
+      --stratum "0.0.0.0:3333" --p2p "0.0.0.0:37889"
+      --addpeers "seed.p2pool.observer:37889"
+  monero:
+    image: monero:latest
+    container_name: monero
+    build:
+      context: ./monero
+    restart: always
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /run/monero
+    networks:
+      - monero-pool
+    volumes:
+      - monero:/var/monero:rw
+      - "/dev/hugepages:/dev/hugepages:rw"
+    ports:
+      - "18080:18080"
+      - "18081:18081"
+    command: >-
+      --p2p-external-port "18080"
